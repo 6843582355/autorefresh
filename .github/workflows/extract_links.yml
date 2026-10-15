@@ -1,0 +1,24 @@
+name: Extract Google Macro Links
+
+on:
+  workflow_dispatch: # Allows you to run this manually whenever you want
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Find and Extract Links
+        run: |
+          echo "=== Found Macro Links ===" > extracted_links.txt
+          # Recursively find all index.html files and grab the macro URLs
+          find . -name "index.html" -exec grep -o -E "https://script\.google\.com/macros/[^\s\"'>]+" {} + >> extracted_links.txt || true
+          cat extracted_links.txt
+
+      - name: Upload Links as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-macro-links
+          path: extracted_links.txt
