@@ -1,0 +1,45 @@
+name: Extract Macros Links
+
+on:
+  push:
+    paths:
+      - '*.zip' # Runs whenever a zip file is updated
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Run Extraction Script
+      run: |
+        python -c "
+        import re, zipfile, os
+        pattern = re.compile(r'https?://script\.google\.com/macros/[^\s\'\"\\>]+')
+        found_links = set()
+        zip_path = 'my_games_archive.zip' # Make sure this matches your zip file name
+        if os.path.exists(zip_path):
+            with zipfile.ZipFile(zip_path, 'r') as archive:
+                for f in archive.infolist():
+                    if f.filename.endswith('index.html'):
+                        with archive.open(f) as html:
+                            matches = pattern.findall(html.read().decode('utf-8', errors='ignore'))
+                            found_links.update(matches)
+            with open('extracted_links.txt', 'w', encoding='utf-8') as out:
+                for link in sorted(found_links):
+                    out.write(link + '\n')
+        "
+
+    - name: Commit and Push Text File
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@://github.com'
+        git add extracted_links.txt
+        git commit -m "Auto-updated extracted macro links" || exit 0
+        git push
